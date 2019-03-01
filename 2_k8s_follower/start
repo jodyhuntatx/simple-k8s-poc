@@ -1,0 +1,11 @@
+#!/bin/bash
+set -euo pipefail
+
+./0_check_dependencies.sh
+
+#./stop
+
+./1_prepare_conjur_namespace.sh
+./2_prepare_docker_images.sh
+./3_deploy_conjur_followers.sh
+./4_configure_followers.sh
