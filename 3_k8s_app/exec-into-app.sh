@@ -1,5 +1,6 @@
 #!/bin/bash
-. utils.sh
+source ../config/utils.sh
+
 if [[ $# != 1 ]]; then
   echo "specify 'init' or 'side'"
   exit -1

@@ -1,33 +1,34 @@
 #!/bin/bash 
-set -euo pipefail
+set -eo pipefail
 
-source ../config/demo.config
 source ../config/kubernetes.config
 source ../config/utils.sh
 
-set_namespace default
+set_namespace $TEST_APP_NAMESPACE_NAME
 
-if has_namespace $TEST_APP_NAMESPACE_NAME; then
-  $cli delete namespace $TEST_APP_NAMESPACE_NAME >& /dev/null &
-
-  printf "Waiting for $TEST_APP_NAMESPACE_NAME namespace deletion to complete"
-
-  while : ; do
-    printf "..."
+if ! [ "${DOCKER_EMAIL}" = "" ]; then
+  announce "Deleting image pull secret."
     
-    if has_namespace "$TEST_APP_NAMESPACE_NAME"; then
-      sleep 5
-    else
-      break
-    fi
-  done
-
-  echo ""
+  kubectl delete --ignore-not-found secret dockerpullsecret
 fi
 
-set +e
-test_sidecar_app_docker_image=$(platform_image test-sidecar-app)
-test_init_app_docker_image=$(platform_image test-init-app)
-docker rmi $test_sidecar_app_docker_image $test_init_app_docker_image &> /dev/null
+announce "Deleting test app/sidecar deployment."
+$cli delete --ignore-not-found \
+  deployment/test-app-summon-sidecar \
+  service/test-app-summon-sidecar \
+  serviceaccount/test-app-summon-sidecar
 
-echo "Test app environment purged."
+announce "Deleting test app/init container deployment."
+$cli delete --ignore-not-found \
+  deployment/test-app-summon-init \
+  service/test-app-summon-init \
+  serviceaccount/test-app-summon-init
+
+echo "Waiting for pods to terminate"
+until [[ "$($cli get pods 2>&1)" == "No resources found." ]]; do
+  sleep 4
+  echo -n '.'
+done
+echo
+
+echo "Test app deleted."

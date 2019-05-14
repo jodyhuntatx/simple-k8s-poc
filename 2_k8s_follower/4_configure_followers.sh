@@ -1,7 +1,7 @@
 #!/bin/bash 
 set -euo pipefail
 
-source ../config/demo.config
+source ../config/cluster.config
 source ../config/kubernetes.config
 source ../config/utils.sh
 

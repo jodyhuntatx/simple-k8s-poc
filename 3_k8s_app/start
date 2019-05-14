@@ -9,6 +9,5 @@ set -euo pipefail
 ./2_store_conjur_cert.sh
 ./3_build_and_push_containers.sh
 ./4_load_policies.sh
-./5_init_authn_k8s.sh
-./6_deploy_test_app.sh
-./7_verify_authentication.sh
+./5_deploy_test_app.sh
+./6_verify_authentication.sh

@@ -1,37 +1,37 @@
-#!/bin/bash 
+#!/bin/bash
 
-source ../config/demo.config
+source ../config/cluster.config
+source ../config/kubernetes.config
 
 # This script deletes running instances and brings up 
-#   initialized Conjur Master & CLI nodes
-#   and leaves the user logged into the CLI as the admin user
+#   initialized Conjur Master, Follower & CLI nodes.
+#   It loads a simple demo policy and leaves the user
+#   logged into the CLI as the admin user.
 
 #################
 main() {
-  delete_all
+  ./stop
+  sleep 5
+  configure_networking
   master_up
+  follower_up
   cli_up
+  load_demo_policy
   ./exec-into-cli.sh
 }
 
 #################
-delete_all() {
-  echo "Deleting master.."
-  bash -c "docker stop $CONJUR_MASTER_CONTAINER_NAME >& /dev/null; docker rm $CONJUR_MASTER_CONTAINER_NAME >& /dev/null" &
-
-  echo "Deleting cli.."
-  bash -c "docker stop $CLI_CONTAINER_NAME >& /dev/null; docker rm $CLI_CONTAINER_NAME >& /dev/null"
-
-  echo "Deleting cache directory..."
-  rm -rf $CACHE_DIR
+configure_networking() {
+  # enable IPV4 port forwarding
+  sysctl -w net.ipv4.ip_forward=1
+  # update local firewall rules to allow container-container connections
+  firewall-cmd --permanent --zone=public --add-rich-rule='rule family=ipv4 source address=172.17.0.0/16 accept'
+  firewall-cmd --reload
 }
 
 #################
 master_up() {
-
   # Bring up Conjur Master node
-  # If docker-compose installed, replace all "docker run..." 
-  #   command lines with "docker-compose up -d conjur"
   docker run -d \
     --name $CONJUR_MASTER_CONTAINER_NAME \
     --label role=conjur_node \
@@ -41,6 +41,10 @@ master_up() {
     --restart always \
     --security-opt seccomp:unconfined \
     $CONJUR_APPLIANCE_IMAGE 
+
+  # copy modified configuration recipe and nginx patch script into node
+  docker cp ./configure.rb.mod $CONJUR_MASTER_CONTAINER_NAME:/opt/conjur/evoke/chef/cookbooks/conjur/recipes/configure.rb
+  docker cp ./patch_nginx.sh $CONJUR_MASTER_CONTAINER_NAME:/opt/conjur/evoke/bin
 
   # Configure Conjur Master node
   echo "Configuring Conjur master..."
@@ -60,6 +64,40 @@ master_up() {
   echo "Caching Conjur Follower seed files..."
   rm -f $FOLLOWER_SEED_FILE
   docker exec $CONJUR_MASTER_CONTAINER_NAME evoke seed follower conjur-follower > $FOLLOWER_SEED_FILE
+
+  echo "Initializing Conjur K8s authenticator service..."
+  docker exec -it $CONJUR_MASTER_CONTAINER_NAME chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init["conjur/authn-k8s/$AUTHENTICATOR_ID"]
+}
+
+############################
+follower_up() {
+  # Bring up Conjur Follower node
+  docker run -d \
+    --name $CONJUR_FOLLOWER_CONTAINER_NAME \
+    --label role=conjur_node \
+    -p "$CONJUR_FOLLOWER_PORT:443" \
+    --restart always \
+    --security-opt seccomp:unconfined \
+    $CONJUR_APPLIANCE_IMAGE
+
+  # copy modified configuration recipe and nginx patch script into node
+  docker cp ./configure.rb.mod $CONJUR_FOLLOWER_CONTAINER_NAME:/opt/conjur/evoke/chef/cookbooks/conjur/recipes/configure.rb
+  docker cp ./patch_nginx.sh $CONJUR_FOLLOWER_CONTAINER_NAME:/opt/conjur/evoke/bin
+
+  if $NO_DNS; then
+    # add entry to follower's /etc/hosts so $CONJUR_MASTER_HOST_NAME resolves
+    docker exec -it $CONJUR_FOLLOWER_CONTAINER_NAME \
+	bash -c "echo \"$CONJUR_MASTER_HOST_IP $CONJUR_MASTER_HOST_NAME\" >> /etc/hosts"
+  fi
+
+  echo "Initializing Conjur Follower"
+  docker cp $FOLLOWER_SEED_FILE \
+		$CONJUR_FOLLOWER_CONTAINER_NAME:/tmp/follower-seed.tar
+  docker exec $CONJUR_FOLLOWER_CONTAINER_NAME \
+		evoke unpack seed /tmp/follower-seed.tar
+  docker exec $CONJUR_FOLLOWER_CONTAINER_NAME \
+		evoke configure follower -p $CONJUR_MASTER_PORT
+
 }
 
 #################
@@ -85,11 +123,18 @@ cli_up() {
   # Login as admin
   docker exec $CLI_CONTAINER_NAME \
     conjur authn login -u admin -p $CONJUR_ADMIN_PASSWORD
+}
 
+load_demo_policy() {
   # Copy policy into CLI and load it
-  docker cp ./policy.yml $CLI_CONTAINER_NAME:/policy.yml
+  docker exec $CLI_CONTAINER_NAME mkdir -p /policy
+  docker cp ./policy/demo-policy.yml $CLI_CONTAINER_NAME:/policy/demo-policy.yml
   docker exec $CLI_CONTAINER_NAME \
-    conjur policy load root /policy.yml
+    conjur policy load root /policy/demo-policy.yml
+  docker exec $CLI_CONTAINER_NAME \
+    conjur variable values add secrets/db-username "This-is-the-DB-username"
+  docker exec $CLI_CONTAINER_NAME bash -c \
+    "conjur variable values add secrets/db-password $(openssl rand -hex 12)"
 }
 
 main "$@"

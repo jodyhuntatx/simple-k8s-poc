@@ -1,5 +1,5 @@
 #!/bin/bash
 
-source ../config/demo.config
+source ../config/cluster.config
 
 docker exec -it $CLI_CONTAINER_NAME bash

@@ -1,6 +1,6 @@
 ---
 - !policy
-  id: app-dev
+  id: newtest
   annotations:
     description: This policy defines the identity structure for the application
   body:
