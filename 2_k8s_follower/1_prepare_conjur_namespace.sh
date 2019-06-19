@@ -32,15 +32,15 @@ create_service_account() {
     if has_serviceaccount $CONJUR_SERVICEACCOUNT_NAME; then
         echo "Service account '$CONJUR_SERVICEACCOUNT_NAME' exists, not going to create it."
     else
-        $cli create serviceaccount $CONJUR_SERVICEACCOUNT_NAME -n $CONJUR_NAMESPACE_NAME
+        $CLI create serviceaccount $CONJUR_SERVICEACCOUNT_NAME -n $CONJUR_NAMESPACE_NAME
     fi
 }
 
 create_cluster_role() {
-  $cli delete --ignore-not-found clusterrole conjur-authenticator-$CONJUR_NAMESPACE_NAME
+  $CLI delete --ignore-not-found clusterrole conjur-authenticator-$CONJUR_NAMESPACE_NAME
 
   sed -e "s#{{ CONJUR_NAMESPACE_NAME }}#$CONJUR_NAMESPACE_NAME#g" ./$PLATFORM/conjur-authenticator-role.yaml |
-    $cli apply -f -
+    $CLI apply -f -
 }
 
 main $@

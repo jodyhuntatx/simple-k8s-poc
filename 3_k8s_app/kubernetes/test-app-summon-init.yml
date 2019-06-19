@@ -35,6 +35,10 @@ spec:
         app: test-app-summon-init
     spec:
       serviceAccountName: test-app-summon-init
+      hostAliases:
+      - ip: "{{ CONJUR_MASTER_HOST_IP }}"
+        hostnames:
+        - "{{ CONJUR_MASTER_HOST_NAME }}"
       containers:
       - image: {{ TEST_APP_DOCKER_IMAGE }}
         imagePullPolicy: {{ IMAGE_PULL_POLICY }}
@@ -61,7 +65,7 @@ spec:
             readOnly: true
       initContainers:
       - image: {{ AUTHENTICATOR_CLIENT_IMAGE }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ IMAGE_PULL_POLICY }}
         name: authenticator
         env:
           - name: CONJUR_VERSION

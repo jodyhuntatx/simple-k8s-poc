@@ -4,28 +4,33 @@ set -eo pipefail
 source ../config/kubernetes.config
 source ../config/utils.sh
 
-set_namespace $TEST_APP_NAMESPACE_NAME
+#set_namespace $TEST_APP_NAMESPACE_NAME
 
 if ! [ "${DOCKER_EMAIL}" = "" ]; then
   announce "Deleting image pull secret."
     
-  kubectl delete --ignore-not-found secret dockerpullsecret
+  kubectl delete --ignore-not-found secret dockerpullsecret -n $TEST_APP_NAMESPACE_NAME
 fi
 
-announce "Deleting test app/sidecar deployment."
-$cli delete --ignore-not-found \
+echo "Deleting config map..."
+$CLI delete --ignore-not-found cm $CONJUR_CONFIG_MAP -n $TEST_APP_NAMESPACE_NAME
+
+echo "Deleting test app/sidecar deployment."
+$CLI delete --ignore-not-found \
   deployment/test-app-summon-sidecar \
   service/test-app-summon-sidecar \
-  serviceaccount/test-app-summon-sidecar
+  serviceaccount/test-app-summon-sidecar \
+  -n $TEST_APP_NAMESPACE_NAME
 
-announce "Deleting test app/init container deployment."
-$cli delete --ignore-not-found \
+echo "Deleting test app/init container deployment."
+$CLI delete --ignore-not-found \
   deployment/test-app-summon-init \
   service/test-app-summon-init \
-  serviceaccount/test-app-summon-init
+  serviceaccount/test-app-summon-init \
+  -n $TEST_APP_NAMESPACE_NAME
 
 echo "Waiting for pods to terminate"
-until [[ "$($cli get pods 2>&1)" == "No resources found." ]]; do
+until [[ "$($CLI get pods -n $TEST_APP_NAMESPACE_NAME 2>&1)" == "No resources found." ]]; do
   sleep 4
   echo -n '.'
 done

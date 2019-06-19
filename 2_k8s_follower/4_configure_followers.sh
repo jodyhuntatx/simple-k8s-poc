@@ -11,12 +11,13 @@ main() {
   announce "Configuring followers."
 
   configure_followers
+  initialize_config_map
 
   echo "Followers configured."
 }
 
 configure_followers() {
-  pod_list=$($cli get pods -l role=follower --no-headers | awk '{ print $1 }')
+  pod_list=$($CLI get pods -l role=follower --no-headers | awk '{ print $1 }')
   
   for pod_name in $pod_list; do
     configure_follower $pod_name &
@@ -32,13 +33,25 @@ configure_follower() {
 
   copy_file_to_container $FOLLOWER_SEED_FILE "/tmp/follower-seed.tar" "$pod_name"
 
-  $cli exec $pod_name -- evoke unpack seed /tmp/follower-seed.tar
+  $CLI exec $pod_name -- evoke unpack seed /tmp/follower-seed.tar
 
   if [[ $NO_DNS == true ]]; then
-    $cli exec -it $pod_name -- bash -c "echo \"$CONJUR_MASTER_HOST_IP    $CONJUR_MASTER_HOST_NAME\" >> /etc/hosts"
+    $CLI exec -it $pod_name -- bash -c "echo \"$CONJUR_MASTER_HOST_IP    $CONJUR_MASTER_HOST_NAME\" >> /etc/hosts"
   fi
 
-  $cli exec $pod_name -- evoke configure follower -p $CONJUR_MASTER_PORT
+  $CLI exec $pod_name -- evoke configure follower -p $CONJUR_MASTER_PORT
+}
+
+###################################
+initialize_config_map() {
+  echo "Storing Conjur cert in config map for cluster apps to use."
+
+  $CLI delete --ignore-not-found=true -n default configmap $CONJUR_CONFIG_MAP
+
+  # Store the Conjur cert in a ConfigMap in default namespace
+  $CLI create configmap -n default $CONJUR_CONFIG_MAP --from-file=ssl-certificate=<(cat "$FOLLOWER_CERT_FILE")
+
+  echo "Conjur cert stored."
 }
 
 main $@

@@ -8,7 +8,7 @@ source ../config/utils.sh
 set_namespace default
 
 if has_namespace $CONJUR_NAMESPACE_NAME; then
-  $cli delete namespace $CONJUR_NAMESPACE_NAME >& /dev/null &
+  $CLI delete namespace $CONJUR_NAMESPACE_NAME >& /dev/null &
 
   printf "Waiting for $CONJUR_NAMESPACE_NAME namespace deletion to complete"
 

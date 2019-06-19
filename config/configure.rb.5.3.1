@@ -14,7 +14,7 @@ end
   end
 end
 
-include_recipe 'conjur::ssl_port'
+include_recipe 'conjur::_nginx_ssl'
 
 if conjur_master?
   include_recipe 'conjur::master'
@@ -22,13 +22,12 @@ else
   include_recipe 'conjur::slave'
 end
 
-# All node types run nginx
-
 # patch nginx config to disable IPV6 listening
 bash 'patch nginx config' do
   code '/opt/conjur/evoke/bin/patch_nginx.sh'
 end
 
+# All node types run nginx
 service 'enable nginx' do
   service_name 'nginx'
   action :enable
