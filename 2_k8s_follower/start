@@ -6,6 +6,6 @@ set -euo pipefail
 ./stop
 
 ./1_prepare_conjur_namespace.sh
-./2_prepare_docker_images.sh
-./3_deploy_conjur_followers.sh
-./4_configure_followers.sh
+./2_init_follower_authn.sh
+./3_prepare_docker_images.sh
+./4_deploy_conjur_followers.sh

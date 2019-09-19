@@ -58,7 +58,7 @@ spec:
             valueFrom:
               configMapKeyRef:
                 name: {{ CONFIG_MAP_NAME }}
-                key: ssl-certificate
+                key: follower-certificate
         volumeMounts:
           - mountPath: /run/conjur
             name: conjur-access-token
@@ -93,7 +93,7 @@ spec:
             valueFrom:
               configMapKeyRef:
                 name: {{ CONFIG_MAP_NAME }}
-                key: ssl-certificate
+                key: follower-certificate
         volumeMounts:
           - mountPath: /run/conjur
             name: conjur-access-token

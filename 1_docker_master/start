@@ -46,10 +46,6 @@ master_up() {
     --security-opt seccomp:unconfined \
     $CONJUR_APPLIANCE_IMAGE 
 
-  # copy modified configuration recipe and nginx patch script into node
-#  docker cp ../config/configure.rb.5.3.1 $CONJUR_MASTER_CONTAINER_NAME:/opt/conjur/evoke/chef/cookbooks/conjur/recipes/configure.rb
-#  docker cp ../config/patch_nginx.sh $CONJUR_MASTER_CONTAINER_NAME:/opt/conjur/evoke/bin
-
   # Configure Conjur Master node
   echo "Configuring Conjur master..."
   docker exec $CONJUR_MASTER_CONTAINER_NAME \
@@ -64,7 +60,6 @@ master_up() {
   echo "Caching Conjur master cert ..."
   rm -f $MASTER_CERT_FILE $FOLLOWER_CERT_FILE
   docker cp -L $CONJUR_MASTER_CONTAINER_NAME:/opt/conjur/etc/ssl/conjur.pem $MASTER_CERT_FILE
-  docker cp -L $CONJUR_MASTER_CONTAINER_NAME:/opt/conjur/etc/ssl/conjur-follower.pem $FOLLOWER_CERT_FILE
 
   echo "Caching Conjur Follower seed files..."
   rm -f $FOLLOWER_SEED_FILE
@@ -162,10 +157,6 @@ follower_up() {
     --security-opt seccomp:unconfined \
     $CONJUR_APPLIANCE_IMAGE
 
-  # copy modified configuration recipe and nginx patch script into node
-#  docker cp ../config/configure.rb.5.3.1 $CONJUR_FOLLOWER_CONTAINER_NAME:/opt/conjur/evoke/chef/cookbooks/conjur/recipes/configure.rb
-#  docker cp ../config/patch_nginx.sh $CONJUR_FOLLOWER_CONTAINER_NAME:/opt/conjur/evoke/bin
-
   if $NO_DNS; then
     # add entry to follower's /etc/hosts so $CONJUR_MASTER_HOST_NAME resolves
     docker exec -it $CONJUR_FOLLOWER_CONTAINER_NAME \
@@ -180,7 +171,7 @@ follower_up() {
   docker exec $CONJUR_FOLLOWER_CONTAINER_NAME \
 		evoke configure follower -p $CONJUR_MASTER_PORT
 
-  echo "Caching Conjur folloer cert ..."
+  echo "Caching Conjur follower cert ..."
   rm -f $FOLLOWER_CERT_FILE
   docker cp -L $CONJUR_FOLLOWER_CONTAINER_NAME:/opt/conjur/etc/ssl/conjur-follower.pem $FOLLOWER_CERT_FILE
 }

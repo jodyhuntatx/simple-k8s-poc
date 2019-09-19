@@ -10,14 +10,12 @@ check_env_var() {
 }
 
 repo_image_tag() {
-  local namespace=$1
-  local image_name=$2
+  local image_name=$1
+  local namespace=$2
   if [ $PLATFORM = "openshift" ]; then
     echo "$DOCKER_REGISTRY_PATH/$namespace/$image_name:$namespace"
-  elif ! $MINIKUBE; then
-    echo "$DOCKER_REGISTRY_PATH/$mage_name:$namespace"
   else
-    echo "$1:$namespace"
+    echo "$DOCKER_REGISTRY_PATH/$image_name:$namespace"
   fi
 }
 

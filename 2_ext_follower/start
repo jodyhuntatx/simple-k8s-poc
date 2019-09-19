@@ -63,14 +63,31 @@ initialize_variables() {
 
 ###################################
 initialize_config_map() {
-  echo "Storing Conjur cert in config map for cluster apps to use."
-
   $CLI delete --ignore-not-found=true -n default configmap $CONJUR_CONFIG_MAP
 
-  # Store the Conjur cert in a ConfigMap.
-  $CLI create configmap -n default $CONJUR_CONFIG_MAP --from-file=ssl-certificate=<(cat "$FOLLOWER_CERT_FILE")
+  master_url="https://$CONJUR_MASTER_HOST_NAME:$CONJUR_MASTER_PORT"
+  master_cert=$(cat "$MASTER_CERT_FILE")
+  follower_url="https://$CONJUR_FOLLOWER_SERVICE_NAME"
+  follower_cert="$(cat $FOLLOWER_CERT_FILE)"
 
-  echo "Conjur cert stored."
+  $CLI create configmap $CONJUR_CONFIG_MAP \
+        -n default \
+        --from-literal=follower-namespace-name="" \
+        --from-literal=conjur-master-url=$master_url                    \
+        --from-literal=master-certificate="$master_cert"                \
+        --from-literal=conjur-seed-file-url=""				\
+        --from-literal=conjur-follower-url=$follower_url                \
+        --from-literal=follower-certificate="$follower_cert"            \
+        --from-literal=conjur-authn-login-cluster="$CONJUR_CLUSTER_LOGIN" \
+        --from-literal=conjur-account="$CONJUR_ACCOUNT"                 \
+        --from-literal=conjur-version="$CONJUR_VERSION"                 \
+        --from-literal=conjur-authenticators="$CONJUR_AUTHENTICATORS"   \
+        --from-literal=authenticator-id="$AUTHENTICATOR_ID"             \
+        --from-literal=conjur-authn-token-file="/run/conjur/access-token"
+
+  echo "Conjur config map recreated."
+
 }
 
 main "$@"
+
