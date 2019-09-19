@@ -78,6 +78,7 @@ re_create_conjur_config_map() {
   while [[ 'True' != $(kubectl get po "$follower_pod_name" -o 'jsonpath={.status.conditions[?(@.type=="Ready")].status}') ]]; do
     echo -n "."; sleep 3
   done
+  echo ""
 
   # cat Follower cert to cert file
   follower_cert="$($CLI exec $follower_pod_name -- cat /opt/conjur/etc/ssl/conjur.pem)"

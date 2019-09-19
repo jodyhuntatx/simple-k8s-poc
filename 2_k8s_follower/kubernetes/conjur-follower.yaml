@@ -99,7 +99,7 @@ spec:
 
       containers:
       - name: conjur-appliance
-        command: ["/tmp/seedfile/start-follower-docker-master.sh"]
+        command: ["/tmp/seedfile/start-follower.sh"]
         image: {{ CONJUR_APPLIANCE_IMAGE }}
         imagePullPolicy: {{ IMAGE_PULL_POLICY }}
         env:

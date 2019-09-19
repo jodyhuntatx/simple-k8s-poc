@@ -23,18 +23,17 @@ prepare_conjur_appliance_image() {
 }
 
 prepare_seed_fetcher_image() {
-  announce "Building and pushing seed-fetcher image."
-
   if $CONNECTED; then
+    announce "Building and pushing seed-fetcher image."
     pushd build/seed-fetcher
       ./build.sh
     popd
   fi
 
-  seed_fetcher_image=$(repo_image_tag $CONJUR_NAMESPACE_NAME seed-fetcher)
-  docker tag seed-fetcher:latest $seed_fetcher_image
+  seed_fetcher_image_tag=$(repo_image_tag seed-fetcher $CONJUR_NAMESPACE_NAME)
+  docker tag $SEED_FETCHER_IMAGE $seed_fetcher_image_tag
 
-  docker push $seed_fetcher_image
+  docker push $seed_fetcher_image_tag
 }
 
 main $@
